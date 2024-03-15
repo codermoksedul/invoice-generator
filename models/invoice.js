@@ -1,108 +1,53 @@
-import mongoose from "mongoose";
+// models/invoice.js
 
-const { Schema, model } = mongoose;
+import mongoose from 'mongoose';
 
-const invoiceSchema = new Schema({
+const invoiceSchema = new mongoose.Schema({
   invoiceId: {
     type: String,
     required: true
   },
   invoiceDate: {
     type: Date,
-    required: true
+    default: Date.now
   },
   deliveryDate: {
-    type: Date,
-    required: true
+    type: Date
   },
   company: {
-    companyName: {
-      type: String,
-      required: true
-    },
-    creatorName: {
-      type: String,
-      required: true
-    },
-    brandEmail: {
-      type: String,
-      required: true
-    },
-    brandPhone: {
-      type: String,
-      required: true
-    },
-    brandAddress: {
-      type: String,
-      required: true
-    }
+    companyName: String,
+    creatorName: String,
+    brandEmail: String,
+    brandPhone: String,
+    brandAddress: String
   },
   customer: {
-    company: {
-      type: String,
-      required: true
-    },
-    name: {
-      type: String,
-      required: true
-    },
-    phone: {
-      type: String,
-      required: true
-    },
-    email: {
-      type: String,
-      required: true
-    },
-    address: {
-      type: String,
-      required: true
-    }
+    company: String,
+    name: String,
+    phone: String,
+    email: String,
+    address: String
   },
   items: [{
-    serialNo: {
-      type: Number,
-      required: true
-    },
-    productTitle: {
-      type: String,
-      required: true
-    },
-    productDescription: {
-      type: String,
-      required: true
-    },
-    quantity: {
-      type: Number,
-      required: true
-    },
-    unitPrice: {
-      type: Number,
-      required: true
-    }
+    serialNo: Number,
+    productTitle: String,
+    productDescription: String,
+    quantity: Number,
+    unitPrice: Number
   }],
   discount: {
     type: Number,
-    required: true
+    default: 0
   },
-  totalPrice: {
-    type: Number,
-    required: true
-  },
-  discountedPrice: {
-    type: Number,
-    required: true
-  },
-  paymentMethod: {
-    type: String,
-    required: true
-  },
-  paymentDetails: {
-    type: String,
-    required: true
-  }
+  paymentMethod: String,
+  paymentDetails: String
 });
 
-const Invoice = mongoose.models.Invoice || model("Invoice", invoiceSchema);
+let Invoice;
+try {
+  Invoice = mongoose.model('Invoice');
+} catch {
+  Invoice = mongoose.model('Invoice', invoiceSchema);
+}
 
 export default Invoice;

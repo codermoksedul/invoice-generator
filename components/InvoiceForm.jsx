@@ -213,45 +213,27 @@ function InvoiceForm() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Perform form validation
-    let formIsValid = true;
-    const newErrors = { ...errors };
+    try {
+      const response = await fetch('/api/invoice', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(invoiceData)
+      });
 
-    // Check for required fields
-    if (!invoiceData.company.companyName || !invoiceData.company.creatorName || !invoiceData.company.brandEmail || !invoiceData.company.brandPhone || !invoiceData.company.brandAddress) {
-      newErrors.company = 'All company fields are required';
-      formIsValid = false;
-    } else {
-      newErrors.company = '';
-    }
+      if (!response.ok) {
+        throw new Error('Failed to submit form');
+      }
 
-    if (!invoiceData.customer.company || !invoiceData.customer.name || !invoiceData.customer.phone || !invoiceData.customer.email || !invoiceData.customer.address) {
-      newErrors.customer = 'All customer fields are required';
-      formIsValid = false;
-    } else {
-      newErrors.customer = '';
-    }
-
-    // Check for at least one item
-    if (invoiceData.items.length === 0 || !invoiceData.items.some(item => item.productTitle || item.productDescription || item.quantity || item.unitPrice)) {
-      newErrors.items = 'At least one item is required';
-      formIsValid = false;
-    } else {
-      newErrors.items = '';
-    }
-
-    // Set errors state
-    setErrors(newErrors);
-
-    // If form is valid, proceed with form submission
-    if (formIsValid) {
-      console.log("Form submitted successfully:", invoiceData);
-      // Add code here to handle form submission (e.g., send data to server)
-    } else {
-      console.log("Form validation failed. Please check the errors.");
+      // Reset form fields or show a success message
+      console.log('Form submitted successfully');
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      // Handle error (e.g., display error message to user)
     }
   };
 
