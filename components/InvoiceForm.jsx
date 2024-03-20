@@ -269,13 +269,18 @@ function InvoiceForm() {
     }
   
     try {
+      const total = calculateTotalPrice();
+      const discountedTotal = calculateDiscountedTotal();
+      
       const response = await fetch('/api/invoice', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          ...invoiceData
+          ...invoiceData,
+          total: total,
+          discountedTotal: discountedTotal
         })
       });
   
@@ -291,6 +296,7 @@ function InvoiceForm() {
       setIsSubmitting(false);
     }
   };
+  
   
 
   return (

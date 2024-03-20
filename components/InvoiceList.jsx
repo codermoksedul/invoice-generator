@@ -42,9 +42,11 @@ export default function InvoiceList() {
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer Name</th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice Date</th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Delivery Date</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Price</th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Discounted Total Price</th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Paid</th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -55,9 +57,11 @@ export default function InvoiceList() {
                 <td className="px-6 py-4 whitespace-nowrap">{invoice.customer.name}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{formatDate(invoice.invoiceDate)}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{formatDate(invoice.deliveryDate)}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{invoice.total}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{invoice.discountedTotal}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{invoice.paidAmount}</td>
                 <td className="px-6 py-4 whitespace-nowrap">{invoice.duePayment}</td>
+                <td className="px-6 py-4 whitespace-nowrap">{invoice.paymentStatus}</td>
               </tr>
             ))}
           </tbody>

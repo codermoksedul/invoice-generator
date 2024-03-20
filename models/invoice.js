@@ -39,9 +39,11 @@ const invoiceSchema = new mongoose.Schema({
   },
   total: {
     type: Number,
+    default: 0
   },
   discountedTotal: {
     type: Number,
+    default: 0
   },
   paidAmount: {
     type: Number,
