@@ -27,3 +27,20 @@ export async function GET(req) {
     return NextResponse.json({ message: "An error occurred while fetching invoices." }, { status: 500 });
   }
 }
+
+
+// Function to handle DELETE requests
+export async function DELETE(req) {
+  try {
+    const { id } = req.query;
+    await connectMongoDB();
+    const deletedInvoice = await Invoice.findByIdAndDelete(id);
+    if (!deletedInvoice) {
+      return NextResponse.json({ message: "Invoice not found." }, { status: 404 });
+    }
+    return NextResponse.json({ message: "Invoice deleted successfully." }, { status: 200 });
+  } catch (error) {
+    console.error("Error deleting invoice:", error);
+    return NextResponse.json({ message: "An error occurred while deleting the invoice." }, { status: 500 });
+  }
+}

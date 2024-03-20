@@ -289,7 +289,7 @@ function InvoiceForm() {
       }
   
       alert("Form submitted successfully");
-      window.location.reload();
+      window.location.href = '/dashboard';
     } catch (error) {
       console.error('Error submitting form:', error);
     } finally {
