@@ -1,5 +1,3 @@
-// models/invoice.js
-
 import mongoose from 'mongoose';
 
 const invoiceSchema = new mongoose.Schema({
@@ -39,8 +37,23 @@ const invoiceSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  total: {
+    type: Number,
+  },
+  discountedTotal: {
+    type: Number,
+  },
+  paidAmount: {
+    type: Number,
+    default: 0
+  },
+  duePayment: {
+    type: Number,
+    default: 0
+  },
   paymentMethod: String,
-  paymentDetails: String
+  paymentDetails: String,
+  paymentStatus: String
 });
 
 let Invoice;

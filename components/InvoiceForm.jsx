@@ -1,8 +1,9 @@
-"use client"
+"use client";
 import { useEffect, useState } from 'react';
 import { RiDeleteBinLine } from "react-icons/ri";
 
 function InvoiceForm() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [invoiceData, setInvoiceData] = useState({
     invoiceId: '',
     invoiceDate: '',
@@ -29,8 +30,13 @@ function InvoiceForm() {
       unitPrice: ''
     }],
     discount: 0,
+    total: 0,
+    discountedTotal: 0,
     paymentMethod: '',
-    paymentDetails: ''
+    paymentDetails: '',
+    paymentStatus: 'unpaid',
+    paidAmount: '',
+    duePayment: 0
   });
 
   const [errors, setErrors] = useState({
@@ -47,7 +53,14 @@ function InvoiceForm() {
       invoiceId: generatedId,
       invoiceDate: currentDate
     });
+    // Initialize Due Payment based on Discounted Total and Paid Amount
+    updateDuePayment();
   }, []);
+
+  useEffect(() => {
+    // Update due payment whenever discount or paid amount changes
+    updateDuePayment();
+  }, [invoiceData.discount, invoiceData.paidAmount]);
 
   const generateInvoiceId = () => {
     const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -67,10 +80,13 @@ function InvoiceForm() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setInvoiceData({
-      ...invoiceData,
-      [name]: value
-    });
+    let updatedInvoiceData = { ...invoiceData, [name]: value };
+
+    if (name === 'discount' || name === 'paidAmount') {
+      updateDuePayment();
+    }
+
+    setInvoiceData(updatedInvoiceData);
   };
 
   const handleCompanyChange = (e) => {
@@ -106,7 +122,24 @@ function InvoiceForm() {
       ...invoiceData,
       items: items
     });
+  
+    // Update due payment whenever item price or paid amount changes
+    if (name === 'unitPrice' || name === 'paidAmount') {
+      updateDuePayment();
+    }
+  
+    // Recalculate total price and discounted total whenever item quantity or unit price changes
+    if (name === 'quantity' || name === 'unitPrice') {
+      const totalPrice = calculateTotalPrice();
+      const discountedTotal = calculateDiscountedTotal();
+      setInvoiceData(prevState => ({
+        ...prevState,
+        total: totalPrice,
+        discountedTotal: discountedTotal
+      }));
+    }
   };
+  
 
   const calculateTotalPrice = () => {
     let totalPrice = 0;
@@ -119,7 +152,7 @@ function InvoiceForm() {
     });
     return totalPrice.toFixed(2);
   };
-
+  
   const calculateDiscountedTotal = () => {
     const totalPrice = parseFloat(calculateTotalPrice());
     const discount = parseFloat(invoiceData.discount);
@@ -128,6 +161,15 @@ function InvoiceForm() {
       return (totalPrice - discountedAmount).toFixed(2);
     }
     return totalPrice;
+  };  
+
+  const updateDuePayment = () => {
+    const discountedTotal = calculateDiscountedTotal();
+    const duePayment = (parseFloat(discountedTotal) - invoiceData.paidAmount).toFixed(2);
+    setInvoiceData(prevState => ({
+      ...prevState,
+      duePayment: duePayment
+    }));
   };
 
   const handlePaymentMethodChange = (e) => {
@@ -215,202 +257,229 @@ function InvoiceForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    setIsSubmitting(true);
+  
+    // Check if any input field is empty
+    const isEmpty = Object.values(invoiceData).some(value => value === '');
+  
+    if (isEmpty) {
+      alert("Please fill in all fields.");
+      setIsSubmitting(false);
+      return;
+    }
+  
     try {
       const response = await fetch('/api/invoice', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(invoiceData)
+        body: JSON.stringify({
+          ...invoiceData
+        })
       });
-
+  
       if (!response.ok) {
         throw new Error('Failed to submit form');
       }
-
-      // Reset form fields or show a success message
-      console.log('Form submitted successfully');
+  
+      alert("Form submitted successfully");
+      window.location.reload();
     } catch (error) {
       console.error('Error submitting form:', error);
-      // Handle error (e.g., display error message to user)
+    } finally {
+      setIsSubmitting(false);
     }
   };
+  
 
   return (
     <>
       <div className='w-full relative min-h-screen flex flex-col justify-start items-center my-5 '>
-      <div className='border border-slate-200 p-5 rounded-md max-w-[1200px]'>
-        <h2 className='text-center font-medium text-2xl'>New Invoice Bengaledge</h2>
-        <form onSubmit={handleSubmit} className='grid grid-cols-1'>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mt-5 mb-4">
-            {/* Invoice ID */}
-            <div>
-              <label>Invoice ID:</label>
-              <input className='input' type="text" name="invoiceId" value={invoiceData.invoiceId} readOnly />
-            </div>
-            {/* Invoice Date */}
-            <div>
-              <label>Invoice Date:</label>
-              <input className='input' type="text" name="invoiceDate" value={invoiceData.invoiceDate} readOnly />
-            </div>
-            {/* Delivery Date */}
-            <div>
-              <label>Delivery Date:</label>
-              <input className='input' type="date" name="deliveryDate" value={invoiceData.deliveryDate} onChange={handleChange} />
-            </div>
+        <div className='border border-slate-200 p-5 rounded-md max-w-[1200px]'>
+          <h2 className='text-center font-medium text-2xl'>New Invoice Bengaledge</h2>
+          <form onSubmit={handleSubmit} className='grid grid-cols-1'>
             {/* Company Information */}
-          </div>
-          {/* company info */}
-          <div className='grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5'>
-            <div className='input_hide'>
-              <label>Company Name:</label>
-              <input className='input' type="text" name="companyName" value={invoiceData.company.companyName} onChange={handleCompanyChange} />
-              <div className='error'>{errors.company}</div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-5 mb-4">
+              <div>
+                <label>Invoice ID:</label>
+                <input className='input' type="text" name="invoiceId" value={invoiceData.invoiceId} readOnly />
+              </div>
+              <div>
+                <label>Invoice Date:</label>
+                <input className='input' type="text" name="invoiceDate" value={invoiceData.invoiceDate} readOnly />
+              </div>
+              <div>
+                <label>Delivery Date:</label>
+                <input className='input' type="date" name="deliveryDate" value={invoiceData.deliveryDate} onChange={handleChange} />
+              </div>
+              
+              <div className='w-full'>
+                <div className='input_hide'>
+                  <label>Company Name:</label>
+                  <input className='input' type="text" name="companyName" value={invoiceData.company.companyName} onChange={handleCompanyChange} />
+                  <div className='error'>{errors.company}</div>
+                </div>
+                <div>
+                  <label>Creator Name:</label>
+                  <select className='input !py-2.5' name="creatorName" value={invoiceData.company.creatorName} onChange={handleCompanyChange}>
+                    <option value="">Select Creator</option>
+                    <option value="Akibul Hasan Akash">Akibul Hasan Akash</option>
+                    <option value="Zarif Islam">Zarif Islam</option>
+                    <option value="Moksedul Islam">Moksedul Islam</option>
+                    <option value="Mehedi Hasan">Mehedi Hasan</option>
+                    <option value="Al Amin">Al Amin</option>
+                  </select>
+                  <div className='error'>{errors.company}</div>
+                </div>
+                <div className='input_hide'>
+                  <label>Email:</label>
+                  <input className='input' type="text" name="brandEmail" value={invoiceData.company.brandEmail} onChange={handleCompanyChange} />
+                  <div className='error'>{errors.company}</div>
+                </div>
+                <div className='input_hide'>
+                  <label>Phone:</label>
+                  <input className='input' type="text" name="brandPhone" value={invoiceData.company.brandPhone} onChange={handleCompanyChange} />
+                  <div className='error'>{errors.company}</div>
+                </div>
+                <div className='input_hide'>
+                  <label>Address:</label>
+                  <input className='input' type="text" name="brandAddress" value={invoiceData.company.brandAddress} onChange={handleCompanyChange} />
+                  <div className='error'>{errors.company}</div>
+                </div>
+              </div>
             </div>
-            <div>
-              <label>Creator Name:</label>
-              <select className='input' name="creatorName" value={invoiceData.company.creatorName} onChange={handleCompanyChange}>
-                <option value="">Select Creator</option>
-                <option value="Jane Doe">Akibul Hasan Akash</option>
-                <option value="Jane Doe">Zarif Islam</option>
-                <option value="John Doe">Moksedul Islam</option>
-                <option value="Jane Doe">Mehedi Hasan</option>
-                <option value="Jane Doe">Al Amin</option>
-              </select>
-              <div className='error'>{errors.company}</div>
+            {/* Customer Information */}
+            <h2 className='text-2xl my-2 text-center font-medium'>Customer Information</h2>
+            <div className='grid grid-cols-1 lg:grid-cols-2 gap-5'>
+              <div>
+                <label>Company:</label>
+                <input className='input' type="text" name="company" value={invoiceData.customer.company} onChange={handleCustomerChange} />
+                <div className='error'>{errors.customer}</div>
+              </div>
+              <div>
+                <label>Name:</label>
+                <input className='input' type="text" name="name" value={invoiceData.customer.name} onChange={handleCustomerChange} />
+                <div className='error'>{errors.customer}</div>
+              </div>
+              <div>
+                <label>Phone:</label>
+                <input className='input' type="text" name="phone" value={invoiceData.customer.phone} onChange={handleCustomerChange} />
+                <div className='error'>{errors.customer}</div>
+              </div>
+              <div>
+                <label>Email:</label>
+                <input className='input' type="text" name="email" value={invoiceData.customer.email} onChange={handleCustomerChange} />
+                <div className='error'>{errors.customer}</div>
+              </div>
+              <div>
+                <label>Address:</label>
+                <input className='input' type="text" name="address" value={invoiceData.customer.address} onChange={handleCustomerChange} />
+                <div className='error'>{errors.customer}</div>
+              </div>
             </div>
-            <div className='input_hide'>
-              <label>Email:</label>
-              <input className='input' type="text" name="brandEmail" value={invoiceData.company.brandEmail} onChange={handleCompanyChange} />
-              <div className='error'>{errors.company}</div>
-            </div>
-            <div className='input_hide'>
-              <label>Phone:</label>
-              <input className='input' type="text" name="brandPhone" value={invoiceData.company.brandPhone} onChange={handleCompanyChange} />
-              <div className='error'>{errors.company}</div>
-            </div>
-            <div className='input_hide'>
-              <label>Address:</label>
-              <input className='input' type="text" name="brandAddress" value={invoiceData.company.brandAddress} onChange={handleCompanyChange} />
-              <div className='error'>{errors.company}</div>
-            </div>
-          </div>
-          {/* Customer Information */}
-          
-          <h2 className='text-2xl my-2 text-center font-medium'>Customer Information</h2>
-          <div className='grid grid-cols-1 lg:grid-cols-2 gap-5'>
-            <div>
-              <label>Company:</label>
-              <input className='input' type="text" name="company" value={invoiceData.customer.company} onChange={handleCustomerChange} />
-              <div className='error'>{errors.customer}</div>
-            </div>
-            <div>
-              <label>Name:</label>
-              <input className='input' type="text" name="name" value={invoiceData.customer.name} onChange={handleCustomerChange} />
-              <div className='error'>{errors.customer}</div>
-            </div>
-            <div>
-              <label>Phone:</label>
-              <input className='input' type="text" name="phone" value={invoiceData.customer.phone} onChange={handleCustomerChange} />
-              <div className='error'>{errors.customer}</div>
-            </div>
-            <div>
-              <label>Email:</label>
-              <input className='input' type="text" name="email" value={invoiceData.customer.email} onChange={handleCustomerChange} />
-              <div className='error'>{errors.customer}</div>
-            </div>
-            <div>
-              <label>Address:</label>
-              <input className='input' type="text" name="address" value={invoiceData.customer.address} onChange={handleCustomerChange} />
-              <div className='error'>{errors.customer}</div>
-            </div>
-          </div>
-          {/* Invoice Items */}
-          <h2 className='text-2xl text-center font-medium my-5 mt-10'>Invoice Items</h2>
-          <div className="items_container">
-            <table className="table-auto w-full">
-              <thead>
-                <tr>
-                  <th className="border p-2 font-medium text-sm w-[50px]">No</th>
-                  <th className="border p-2 font-medium text-sm">Title</th>
-                  <th className="border p-2 font-medium text-sm">Description</th>
-                  <th className="border p-2 font-medium text-sm w-[100px]">Quantity</th>
-                  <th className="border p-2 font-medium text-sm w-[150px]">Price</th>
-                  <th className="border p-2 font-medium text-sm w-[80px]">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoiceData.items.map((item, index) => (
-                  <tr key={index}>
-                    <td className="border text-center">{item.serialNo}</td>
-                    <td className="border"><input className='px-3 py-2 outline-none w-full' placeholder='Product Title' type="text" name="productTitle" value={item.productTitle} onChange={(e) => handleItemChange(e, index)} /></td>
-                    <td className="border "><textarea placeholder="Product description" className='px-3 py-2 outline-none w-full max-h-[40px] min-h-[40px]' type="text" name="productDescription" value={item.productDescription} onChange={(e) => handleItemChange(e, index)} /></td>
-                    <td className="border " style={{width: '80px'}}><input placeholder='Quantity' className='px-3 py-2 outline-none w-full' type="number" name="quantity" value={item.quantity} onChange={(e) => handleItemChange(e, index)} /></td>
-                    <td className="border " style={{width: '80px'}}><input placeholder='Price' className='px-3 py-2 outline-none w-full' type="number" name="unitPrice" value={item.unitPrice} onChange={(e) => handleItemChange(e, index)} /></td>
-                    <td className="border">
-                      {index === 0 ? <div className='text-slate-400 text-center flex flex-col justify-center items-center  text-2xl cursor-not-allowed'><RiDeleteBinLine /></div> : (
-                        <button type="button" onClick={() => removeItem(index)} className='text-red-500 px-3 py-1 text-2xl'>
-                          <RiDeleteBinLine />
-                        </button>
-                      )}
-                    </td>
+            {/* Invoice Items */}
+            <h2 className='text-2xl text-center font-medium my-5 mt-10'>Invoice Items</h2>
+            <div className="items_container">
+              <table className="table-auto w-full">
+                <thead>
+                  <tr>
+                    <th className="border p-2 font-medium text-sm w-[50px]">No</th>
+                    <th className="border p-2 font-medium text-sm">Title</th>
+                    <th className="border p-2 font-medium text-sm">Description</th>
+                    <th className="border p-2 font-medium text-sm w-[100px]">Quantity</th>
+                    <th className="border p-2 font-medium text-sm w-[150px]">Price</th>
+                    <th className="border p-2 font-medium text-sm w-[80px]">Action</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-            <button type="button" className='bg-green-500 px-5 py-2 text-white block mt-4' onClick={addItem}>Add New Item</button>
-            <div className='error'>{errors.items}</div>
-          </div>
-
-          {/* Discount and Total */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 my-5">
+                </thead>
+                <tbody>
+                  {invoiceData.items.map((item, index) => (
+                    <tr key={index}>
+                      <td className="border text-center">{item.serialNo}</td>
+                      <td className="border"><input className='px-3 py-2 outline-none w-full' placeholder='Product Title' type="text" name="productTitle" value={item.productTitle} onChange={(e) => handleItemChange(e, index)} /></td>
+                      <td className="border "><textarea placeholder="Product description" className='px-3 py-2 outline-none w-full max-h-[40px] min-h-[40px]' type="text" name="productDescription" value={item.productDescription} onChange={(e) => handleItemChange(e, index)} /></td>
+                      <td className="border " style={{width: '80px'}}><input placeholder='Quantity' className='px-3 py-2 outline-none w-full' type="number" name="quantity" value={item.quantity} onChange={(e) => handleItemChange(e, index)} /></td>
+                      <td className="border " style={{width: '80px'}}><input placeholder='Price' className='px-3 py-2 outline-none w-full' type="number" name="unitPrice" value={item.unitPrice} onChange={(e) => handleItemChange(e, index)} onFocus={updateDuePayment} /></td>
+                      <td className="border">
+                        {index === 0 ? <div className='text-slate-400 text-center flex flex-col justify-center items-center  text-2xl cursor-not-allowed'><RiDeleteBinLine /></div> : <div onClick={() => removeItem(index)} className='text-slate-400 hover:text-red-500 text-center flex flex-col justify-center items-center text-2xl cursor-pointer'><RiDeleteBinLine /></div>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className='w-full flex justify-center items-center mt-4'>
+              <button onClick={addItem} type="button" className="flex justify-center items-center border border-slate-300 py-1 px-3 rounded-md text-slate-300 hover:text-slate-500 hover:border-slate-500">
+                Add Item
+              </button>
+            </div>
+            {/* Discount and Total */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 my-5">
+              <div className=''>
+                <label>Discount:</label>
+                <select className='input' name="discount" value={invoiceData.discount} onChange={handleChange}>
+                  <option value="0">0%</option>
+                  <option value="5">5%</option>
+                  <option value="10">10%</option>
+                  <option value="15">15%</option>
+                  <option value="20">20%</option>
+                </select>
+                <div className='error'>{errors.items}</div>
+              </div>
+              <div className=''>
+                <label>Total Price:</label>
+                <input className='input' type="text" value={calculateTotalPrice()} readOnly />
+              </div>
+              <div className=''>
+                <label>Discounted Total:</label>
+                <input className='input' type="text" value={calculateDiscountedTotal()} readOnly />
+              </div>
+              {/* Payment Status */}
+              <div className=''>
+                <label>Payment Status:</label>
+                <select className='input' name="paymentStatus" value={invoiceData.paymentStatus} onChange={handleChange}>
+                  <option value="paid">Paid</option>
+                  <option value="unpaid">Unpaid</option>
+                </select>
+              </div>
+              {/* Paid Amount */}
+              <div className=''>
+              <label>Paid Amount:</label>
+              <input className='input' type="number" name="paidAmount" value={invoiceData.paidAmount} onChange={handleChange} />
+            </div>
+              {/* Due Payment */}
+              <div className=''>
+                <label>Due Payment:</label>
+                <input className='input' type="number" name="duePayment" value={invoiceData.duePayment} readOnly />
+              </div>
+            </div>
+            {/* Payment Method */}
             <div className=''>
-              <label>Discount:</label>
-              <select className='input' name="discount" value={invoiceData.discount} onChange={handleChange}>
-                <option value="0">0%</option>
-                <option value="5">5%</option>
-                <option value="10">10%</option>
-                <option value="15">15%</option>
-                <option value="20">20%</option>
+              <label>Payment Method:</label>
+              <select className='input' name="paymentMethod" value={invoiceData.paymentMethod} onChange={handlePaymentMethodChange}>
+                <option value="">Select Payment Method</option>
+                <option value="bkash">Bkash</option>
+                <option value="nagad">Nagad</option>
+                <option value="bankTransfer">Bank Transfer</option>
               </select>
-              <div className='error'>{errors.items}</div>
             </div>
-            <div className=''>
-              <label>Total Price:</label>
-              <input className='input' type="text" value={calculateTotalPrice()} readOnly />
+            {/* Payment Details */}
+            {invoiceData.paymentMethod && (
+              <div className='mt-3'>
+                <label htmlFor="">Payment Details</label>
+                {renderPaymentDetailsInput()}
+              </div>
+            )}
+            <div className='w-full flex justify-center items-center mt-8'>
+              <button type="submit" className="border border-slate-300 bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600">
+                {isSubmitting ? 'Submitting...' : 'Submit'}
+              </button>
             </div>
-            <div className=''>
-              <label>Discounted Total:</label>
-              <input className='input' type="text" value={calculateDiscountedTotal()} readOnly />
-            </div>
-          </div>
-
-          {/* Payment Method */}
-          <div className='my-5'>
-            <label>Payment Method:</label>
-            <select className='input' name="paymentMethod" value={invoiceData.paymentMethod} onChange={handlePaymentMethodChange}>
-              <option value="">Select Payment Method</option>
-              <option value="bkash">Bkash</option>
-              <option value="nagad">Nagad</option>
-              <option value="bankTransfer">Bank Transfer</option>
-            </select>
-          </div>
-          {/* Payment Details */}
-          {invoiceData.paymentMethod && (
-            <div className='my-5'>
-              <label>Payment Details:</label>
-              {renderPaymentDetailsInput()}
-            </div>
-          )}
-          {/* Submit Button */}
-          <button type="submit" className='px-5 py-2 bg-green-500 text-white mt-5'>Submit</button>
-        </form>
-      </div>
+          </form>
+        </div>
       </div>
     </>
   );
 }
 
 export default InvoiceForm;
-

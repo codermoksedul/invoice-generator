@@ -14,3 +14,16 @@ export async function POST(req) {
     return NextResponse.json({ message: "An error occurred while inserting the invoice." }, { status: 500 });
   }
 }
+
+
+// Function to handle GET requests
+export async function GET(req) {
+  try {
+    await connectMongoDB();
+    const invoices = await Invoice.find({});
+    return NextResponse.json({ invoices }, { status: 200 });
+  } catch (error) {
+    console.error("Error fetching invoices:", error);
+    return NextResponse.json({ message: "An error occurred while fetching invoices." }, { status: 500 });
+  }
+}
